@@ -8,27 +8,32 @@ export interface Transaction {
   Description: string; // Description of the transaction
 }
 
-export const useCSVParser = (): { transactions: Transaction[]; parseCSV: (file: File) => void } => {
+export const useCSVParser = (): {
+  transactions: Transaction[];
+  parseCSV: (file: File) => void;
+} => {
+  // State to hold the parsed transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const parseCSV = useCallback((file: File) => {
-    Papa.parse<Transaction>(file, {
-      header: true,
-      dynamicTyping: true, // Automatically converts strings to numbers where applicable
-      skipEmptyLines: true, // Skips empty rows
-      transformHeader: (header) => header.trim(), // Trims header whitespace
+    Papa.parse(file, {
+      header: false, // Indicates that the CSV has no headers
+      dynamicTyping: true,
+      skipEmptyLines: true,
       complete: (results) => {
-        const parsedTransactions = results.data.map((item) => {
-          // Type assertion: treat item as a Transaction
-          const transaction = item as Transaction;
+        console.log('Parsing complete:', results); // Check the raw data here
+  
+        // Type assertion to treat data as an array of rows (each row being an array)
+        const parsedTransactions = (results.data as any[][]).map((row) => {
           return {
-            Date: String(transaction.Date), // Ensure Date is a string
-            Amount: Number(transaction.Amount), // Ensure Amount is a number
-            Category: String(transaction.Category || '*'), // Use '*' as default if undefined
-            Description: String(transaction.Description || ''), // Ensure Description is a string
+            Date: String(row[0]), // Adjust the index to match the order of columns in your CSV
+            Amount: Number(row[1]), // Adjust based on the column that contains the amount
+            Category: '*', // Manually assign if there's no category column
+            Description: String(row[4] || ''), // Adjust index if description is in a different column
           };
         });
-
+  
+        console.log('Parsed Transactions:', parsedTransactions);
         setTransactions(parsedTransactions);
       },
       error: (error) => {
@@ -36,6 +41,7 @@ export const useCSVParser = (): { transactions: Transaction[]; parseCSV: (file: 
       },
     });
   }, []);
+  
 
   return { transactions, parseCSV };
 };
