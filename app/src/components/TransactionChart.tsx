@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Tooltip } from 'recharts';
-import { CategoryData } from './categorizeTransactions';
+import { CategoryData } from '../utility/categorizeTransactions';
 
 interface TransactionChartProps {
   data: CategoryData[];
