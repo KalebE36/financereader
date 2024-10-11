@@ -1,34 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useCSVParser, Transaction } from '../src/hooks/useCSVParser';
-import { categorizeTransactions, CategoryData } from '../src/utility/categorizeTransactions';
-import TransactionChart from '../src/components/TransactionChart';
-import FileUploader from '../src/components/FileUpload';
+import FileUpload from '../src/components/FileUpload';
+import TransactionChart, {CategoryData} from '../src/components/TransactionChart';
 
 const App: React.FC = () => {
   const { transactions, parseCSV } = useCSVParser();
-  const [chartData, setChartData] = useState<CategoryData[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
 
-  useEffect(() => {
+  // Group and sum transactions by category for the visualization
+  const calculateCategoryData = (transactions: Transaction[]) => {
+    const data = transactions.reduce<Record<string, number>>((acc, transaction) => {
+      acc[transaction.Category] = (acc[transaction.Category] || 0) + transaction.Amount;
+      return acc;
+    }, {});
+
+    // Transform to array of objects for Recharts
+    const formattedData: CategoryData[] = Object.entries(data).map(([category, total]) => ({
+      category,
+      total: Math.abs(total), // Use absolute value for visualization
+    }));
+
+    setCategoryData(formattedData);
+  };
+
+  // Update category data whenever transactions change
+  React.useEffect(() => {
     if (transactions.length > 0) {
-      console.log('Transactions updated:', transactions); // Log to verify state update
-      const data = categorizeTransactions(transactions);
-      setChartData(data);
+      calculateCategoryData(transactions);
     }
   }, [transactions]);
 
   return (
-    <div className="app-container">
-      <h1>Transaction Visualizer</h1>
-      <FileUploader onFileUpload={parseCSV} />
-      {transactions.length > 0 ? (
-        <pre>{JSON.stringify(transactions, null, 2)}</pre> // Display parsed transactions
-      ) : (
-        <p>No transactions loaded yet.</p>
-      )}
-      <TransactionChart data={chartData} />
+    <div className="bg-gray-600 h-full w-full">
+      <h1>Bank Transaction Visualizer</h1>
+      <FileUpload onFileUpload={parseCSV} />
+      <TransactionChart data={categoryData} />
     </div>
   );
 };
-
 
 export default App;
